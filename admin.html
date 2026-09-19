@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة التحكم الإدارية | MINEX</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-wrap {
+      width: 90%;
+      max-width: 500px;
+      margin: 60px auto;
+    }
+    .admin-card {
+      padding: 30px;
+      border: 1px solid #263650;
+      border-radius: 18px;
+      background: #111b2e;
+      margin-bottom: 20px;
+    }
+    .admin-card input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      border: 1px solid #263650;
+      background: #0b1220;
+      color: #fff;
+      box-sizing: border-box;
+    }
+    .admin-card button {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 8px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-add { background: #45e0a2; color: #0b1220; }
+    .btn-sub { background: #f0bd4f; color: #0b1220; }
+    .btn-search { background: #2a6df4; color: #fff; }
+    #adminPanel { display: none; }
+    #resultBox { color: #aab5ca; margin-top: 10px; }
+    #msgBox { margin-top: 10px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <main class="admin-wrap">
+
+    <!-- قسم تسجيل الدخول -->
+    <section class="admin-card" id="loginBox">
+      <h2>دخول الإدارة</h2>
+      <input type="email" id="adminEmail" placeholder="البريد الإلكتروني">
+      <input type="password" id="adminPassword" placeholder="كلمة المرور">
+      <button class="btn-search" id="loginBtn">دخول</button>
+      <p id="loginMsg" style="color:#f0bd4f;"></p>
+    </section>
+
+    <!-- لوحة التحكم (تظهر فقط بعد تسجيل دخول ناجح كأدمن) -->
+    <section id="adminPanel">
+      <div class="admin-card">
+        <h2>بحث عن حساب</h2>
+        <input type="text" id="searchSerial" placeholder="رقم الحساب (Serial ID)">
+        <button class="btn-search" id="searchBtn">بحث</button>
+        <div id="resultBox"></div>
+      </div>
+
+      <div class="admin-card" id="actionsBox" style="display:none;">
+        <h2>تعديل الرصيد</h2>
+        <input type="number" id="amountInput" placeholder="المبلغ" min="0" step="0.01">
+        <button class="btn-add" id="addBtn">شحن (زيادة)</button>
+        <button class="btn-sub" id="subBtn">سحب (خفض)</button>
+        <p id="msgBox"></p>
+      </div>
+
+      <button class="btn-search" id="logoutBtn" style="background:#263650;color:#fff;">تسجيل الخروج</button>
+    </section>
+
+  </main>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
