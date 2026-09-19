@@ -39,6 +39,10 @@ const msgBox = document.getElementById("msgBox");
 
 let currentUserDocId = null; // معرف مستند المستخدم الحالي في Firestore بعد البحث
 
+// تسجيل خروج تلقائي عند فتح الصفحة، حتى يُطلب البريد وكلمة المرور في كل مرة
+// (بدل أن يبقى Firebase مسجّلاً الدخول تلقائيًا من الجلسة السابقة)
+signOut(auth).catch(() => {});
+
 // ---------- تسجيل الدخول ----------
 loginBtn.addEventListener("click", async () => {
   const email = document.getElementById("adminEmail").value.trim();
