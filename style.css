@@ -1,0 +1,281 @@
+/* style.css — التنسيق العام للموقع */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Tahoma, sans-serif;
+  background: #0b1220;
+  color: #ffffff;
+}
+
+/* ---------- شريط التنقل العلوي ---------- */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 5%;
+  border-bottom: 1px solid #263650;
+  background: #0e1526;
+}
+
+.logo {
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+  text-decoration: none;
+}
+
+.logo span {
+  color: #45e0a2;
+}
+
+.login-button,
+.primary-button {
+  background: #45e0a2;
+  color: #0b1220;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.secondary-button {
+  background: transparent;
+  color: #aab5ca;
+  border: 1px solid #263650;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* ---------- صفحة تسجيل الدخول / إنشاء حساب ---------- */
+.auth-wrap {
+  width: 90%;
+  max-width: 420px;
+  margin: 60px auto;
+}
+
+.auth-card {
+  padding: 30px;
+  border: 1px solid #263650;
+  border-radius: 18px;
+  background: #111b2e;
+}
+
+.auth-card h1 {
+  text-align: center;
+  font-size: 26px;
+  margin-bottom: 5px;
+}
+
+.auth-card h1 span {
+  color: #45e0a2;
+}
+
+.auth-tabs {
+  display: flex;
+  margin: 20px 0;
+  border: 1px solid #263650;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.auth-tabs button {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  color: #aab5ca;
+  border: none;
+  cursor: pointer;
+}
+
+.auth-tabs button.active {
+  background: #45e0a2;
+  color: #0b1220;
+  font-weight: bold;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border: 1px solid #263650;
+  background: #0b1220;
+  color: #fff;
+}
+
+.auth-card button.submit-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #45e0a2;
+  color: #0b1220;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.auth-msg {
+  color: #f0bd4f;
+  margin-top: 10px;
+  min-height: 20px;
+  text-align: center;
+}
+
+/* ---------- لوحة التحكم (dashboard.html) ---------- */
+.dashboard {
+  width: 90%;
+  max-width: 1050px;
+  margin: 55px auto;
+}
+
+.dashboard-heading {
+  margin-bottom: 30px;
+}
+
+.dashboard-heading h1 {
+  font-size: 38px;
+  margin-bottom: 8px;
+}
+
+.dashboard-heading h1 span {
+  color: #45e0a2;
+}
+
+.dashboard-heading p:not(.label) {
+  color: #aab5ca;
+}
+
+.account-info {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.account-info div {
+  padding: 20px;
+  border: 1px solid #263650;
+  border-radius: 14px;
+  background: #111b2e;
+}
+
+.account-info span,
+.account-info strong {
+  display: block;
+}
+
+.account-info span {
+  color: #aab5ca;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.active-status {
+  color: #45e0a2;
+}
+
+.balance-card {
+  padding: 35px;
+  margin-bottom: 20px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #183a45, #17243e);
+  text-align: center;
+}
+
+.balance-card p {
+  color: #aab5ca;
+}
+
+.balance-card h2 {
+  margin: 12px 0;
+  color: #45e0a2;
+  font-size: 48px;
+}
+
+.balance-card span,
+.mining-note {
+  color: #aab5ca;
+  font-size: 13px;
+}
+
+.mining-panel {
+  padding: 28px;
+  border: 1px solid #263650;
+  border-radius: 18px;
+  background: #111b2e;
+  text-align: center;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  color: #aab5ca;
+}
+
+.status-row strong {
+  color: #f0bd4f;
+}
+
+.counter {
+  margin: 35px 0;
+  color: #45e0a2;
+  font-size: 56px;
+  font-weight: bold;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.support-box {
+  margin-top: 20px;
+  padding: 25px;
+  border: 1px solid #263650;
+  border-radius: 15px;
+  background: #111b2e;
+}
+
+.support-box p {
+  margin: 8px 0 15px;
+  color: #aab5ca;
+}
+
+.support-box a {
+  color: #45e0a2;
+  text-decoration: none;
+}
+
+@media (max-width: 700px) {
+  .account-info {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-heading h1 {
+    font-size: 30px;
+  }
+
+  .balance-card h2 {
+    font-size: 38px;
+  }
+
+  .counter {
+    font-size: 42px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .action-buttons button {
+    width: 100%;
+  }
+}

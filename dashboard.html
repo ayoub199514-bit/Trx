@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة التحكم | MINEX</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <header class="navbar">
+    <a class="logo" href="index.html">MIN<span>EX</span></a>
+
+    <button class="login-button" id="logoutButton">
+      تسجيل الخروج
+    </button>
+  </header>
+
+  <main class="dashboard">
+    <section class="dashboard-heading">
+      <p class="label">لوحة التحكم</p>
+      <h1>مرحبًا، <span id="userName">المستخدم</span></h1>
+      <p>تابع نقاطك التجريبية وحالة التعدين الخاصة بك.</p>
+    </section>
+
+    <section class="account-info">
+      <div>
+        <span>رقم الحساب</span>
+        <strong id="serialId">---</strong>
+      </div>
+
+      <div>
+        <span>البريد الإلكتروني</span>
+        <strong id="userEmail">---</strong>
+      </div>
+
+      <div>
+        <span>حالة الحساب</span>
+        <strong class="active-status">نشط</strong>
+      </div>
+    </section>
+
+    <section class="balance-card">
+      <p>النقاط التجريبية</p>
+      <h2 id="balance">0.00</h2>
+      <span>هذه النقاط تجريبية وليست رصيدًا ماليًا</span>
+    </section>
+
+    <section class="mining-panel">
+      <div class="status-row">
+        <span>حالة التعدين</span>
+        <strong id="miningStatus">متوقف</strong>
+      </div>
+
+      <div class="counter" id="miningCounter">0.00</div>
+
+      <div class="action-buttons">
+        <button class="primary-button" id="startButton">
+          ابدأ التعدين
+        </button>
+
+        <button class="secondary-button" id="stopButton">
+          إيقاف
+        </button>
+      </div>
+
+      <p class="mining-note">
+        معدل الزيادة التجريبي: 0.10 نقطة كل ثانية
+      </p>
+    </section>
+
+    <section class="support-box">
+      <h3>هل تحتاج إلى مساعدة؟</h3>
+      <p>تواصل مع فريق الدعم عبر Instagram.</p>
+
+      <a
+        href="https://www.instagram.com/fututrehelp10?stkn=NHUxM2k2cWcxNzRp"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        التواصل مع الدعم
+      </a>
+    </section>
+  </main>
+
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>
