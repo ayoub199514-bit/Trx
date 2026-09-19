@@ -1,5 +1,5 @@
 // app.js
-// منطق صفحة تسجيل الدخول / إنشاء حساب جديد.
+// منطق صفحة تسجيل الدخول / إنشاء حساب جديد + نظام الإحالة.
 
 import { auth, db } from "./firebase-config.js";
 
@@ -13,7 +13,13 @@ import {
   doc,
   setDoc,
   runTransaction,
-  serverTimestamp
+  serverTimestamp,
+  collection,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  increment
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const loginTab = document.getElementById("loginTab");
@@ -22,8 +28,24 @@ const submitBtn = document.getElementById("submitBtn");
 const authMsg = document.getElementById("authMsg");
 const emailInput = document.getElementById("emailInput");
 const passwordInput = document.getElementById("passwordInput");
+const referralBanner = document.getElementById("referralBanner");
+
+// مكافآت نظام الإحالة
+const REFERRAL_BONUS_REFERRER = 50;   // ما يحصل عليه صاحب رابط الإحالة
+const REFERRAL_BONUS_NEW_USER = 20;   // ما يحصل عليه المستخدم الجديد المُحال
 
 let mode = "login"; // أو "signup"
+
+// ---------- التقاط رمز الإحالة من الرابط (?ref=SERIAL) ----------
+const urlParams = new URLSearchParams(window.location.search);
+const refCode = (urlParams.get("ref") || "").trim();
+
+if (refCode && referralBanner) {
+  referralBanner.textContent = `تمت دعوتك عبر رمز إحالة: ${refCode} — ستحصل على ${REFERRAL_BONUS_NEW_USER} نقطة إضافية عند إنشاء حسابك.`;
+  referralBanner.style.display = "block";
+  // نجعل تبويب "حساب جديد" مفعّلًا مباشرة لتسهيل الانضمام عبر رابط الإحالة
+  signupTab.click();
+}
 
 loginTab.addEventListener("click", () => {
   mode = "login";
@@ -70,10 +92,40 @@ submitBtn.addEventListener("click", async () => {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
       const newSerialId = await generateSerialId();
 
+      // التحقق من صحة رمز الإحالة ومنح المكافآت
+      let validReferrer = null;
+      let startingBalance = 0;
+
+      if (refCode) {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("serialId", "==", refCode));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          const referrerDoc = snapshot.docs[0];
+          // لا يمكن للمستخدم إحالة نفسه بنفس رقم الحساب (احتياط إضافي)
+          if (referrerDoc.id !== credential.user.uid) {
+            validReferrer = refCode;
+            startingBalance = REFERRAL_BONUS_NEW_USER;
+
+            await updateDoc(doc(db, "users", referrerDoc.id), {
+              balance: increment(REFERRAL_BONUS_REFERRER),
+              referralCount: increment(1),
+              referralEarnings: increment(REFERRAL_BONUS_REFERRER)
+            });
+          }
+        }
+      }
+
       await setDoc(doc(db, "users", credential.user.uid), {
         email: email,
         serialId: newSerialId,
-        balance: 0,
+        balance: startingBalance,
+        miningLevel: 1,
+        referralCode: newSerialId,
+        referredBy: validReferrer,
+        referralCount: 0,
+        referralEarnings: 0,
         createdAt: serverTimestamp()
       });
     } else {

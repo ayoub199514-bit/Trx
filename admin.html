@@ -43,6 +43,28 @@
     #adminPanel { display: none; }
     #resultBox { color: #aab5ca; margin-top: 10px; }
     #msgBox { margin-top: 10px; font-weight: bold; }
+    .withdraw-requests { margin-top: 14px; }
+    .withdraw-request-item {
+      border: 1px solid #263650;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      color: #dfe6f2;
+    }
+    .withdraw-request-item .wr-row { margin-bottom: 6px; }
+    .withdraw-request-item .wr-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .withdraw-request-item .wr-actions button {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .wr-approve { background: #45e0a2; color: #0b1220; }
+    .wr-reject { background: #f04f4f; color: #fff; }
+    .empty-note { color: #6b7893; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -73,6 +95,12 @@
         <button class="btn-add" id="addBtn">شحن (زيادة)</button>
         <button class="btn-sub" id="subBtn">سحب (خفض)</button>
         <p id="msgBox"></p>
+      </div>
+
+      <div class="admin-card">
+        <h2>طلبات السحب المعلّقة</h2>
+        <button class="btn-search" id="refreshWithdrawBtn">تحديث الطلبات</button>
+        <div id="withdrawRequestsBox" class="withdraw-requests"></div>
       </div>
 
       <button class="btn-search" id="logoutBtn" style="background:#263650;color:#fff;">تسجيل الخروج</button>

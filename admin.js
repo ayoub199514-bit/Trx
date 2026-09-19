@@ -14,7 +14,8 @@ import {
   getDocs,
   doc,
   updateDoc,
-  increment
+  increment,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 import { auth, db } from "./firebase-config.js";
@@ -36,6 +37,9 @@ const subBtn = document.getElementById("subBtn");
 const resultBox = document.getElementById("resultBox");
 const actionsBox = document.getElementById("actionsBox");
 const msgBox = document.getElementById("msgBox");
+
+const refreshWithdrawBtn = document.getElementById("refreshWithdrawBtn");
+const withdrawRequestsBox = document.getElementById("withdrawRequestsBox");
 
 let currentUserDocId = null; // معرف مستند المستخدم الحالي في Firestore بعد البحث
 
@@ -70,6 +74,7 @@ onAuthStateChanged(auth, (user) => {
     loginBox.style.display = "none";
     adminPanel.style.display = "block";
     loginMsg.textContent = "";
+    loadWithdrawRequests();
   } else {
     loginBox.style.display = "block";
     adminPanel.style.display = "none";
@@ -151,5 +156,86 @@ async function adjustBalance(sign) {
     document.getElementById("amountInput").value = "";
   } catch (err) {
     msgBox.textContent = "خطأ أثناء التحديث: " + err.message;
+  }
+}
+
+// ---------- طلبات السحب المعلّقة ----------
+refreshWithdrawBtn.addEventListener("click", () => loadWithdrawRequests());
+
+async function loadWithdrawRequests() {
+  withdrawRequestsBox.innerHTML = '<p class="empty-note">جارٍ التحميل...</p>';
+
+  try {
+    const wRef = collection(db, "withdrawals");
+    const q = query(wRef, where("status", "==", "pending"));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      withdrawRequestsBox.innerHTML = '<p class="empty-note">لا توجد طلبات سحب معلّقة حاليًا.</p>';
+      return;
+    }
+
+    const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    items.sort((a, b) => {
+      const ta = a.requestedAt?.toMillis ? a.requestedAt.toMillis() : 0;
+      const tb = b.requestedAt?.toMillis ? b.requestedAt.toMillis() : 0;
+      return ta - tb; // الأقدم أولًا
+    });
+
+    withdrawRequestsBox.innerHTML = items.map((item) => `
+      <div class="withdraw-request-item" data-id="${item.id}" data-uid="${item.uid}" data-amount="${item.amount}">
+        <div class="wr-row"><strong>${item.amount.toFixed(2)}</strong> نقطة — الحساب #${item.serialId ?? "---"}</div>
+        <div class="wr-row">${item.email ?? "---"}</div>
+        <div class="wr-row">المحفظة: ${item.walletAddress ?? "---"}</div>
+        <div class="wr-actions">
+          <button class="wr-approve" data-action="approve">قبول</button>
+          <button class="wr-reject" data-action="reject">رفض (استرجاع الرصيد)</button>
+        </div>
+      </div>
+    `).join("");
+
+    withdrawRequestsBox.querySelectorAll(".withdraw-request-item").forEach((el) => {
+      el.querySelectorAll("button").forEach((btn) => {
+        btn.addEventListener("click", () => handleWithdrawAction(el, btn.dataset.action));
+      });
+    });
+  } catch (err) {
+    withdrawRequestsBox.innerHTML = `<p class="empty-note">خطأ في تحميل الطلبات: ${err.message}</p>`;
+  }
+}
+
+async function handleWithdrawAction(el, action) {
+  const withdrawId = el.dataset.id;
+  const uid = el.dataset.uid;
+  const amount = parseFloat(el.dataset.amount);
+
+  el.querySelectorAll("button").forEach((b) => (b.disabled = true));
+
+  try {
+    const withdrawRef = doc(db, "withdrawals", withdrawId);
+
+    if (action === "approve") {
+      await updateDoc(withdrawRef, {
+        status: "approved",
+        processedAt: serverTimestamp()
+      });
+    } else {
+      // الرفض: نسترجع المبلغ للمستخدم لأنه كان قد خُصم عند تقديم الطلب
+      await updateDoc(withdrawRef, {
+        status: "rejected",
+        processedAt: serverTimestamp()
+      });
+      await updateDoc(doc(db, "users", uid), {
+        balance: increment(amount)
+      });
+    }
+
+    el.remove();
+    if (!withdrawRequestsBox.querySelector(".withdraw-request-item")) {
+      withdrawRequestsBox.innerHTML = '<p class="empty-note">لا توجد طلبات سحب معلّقة حاليًا.</p>';
+    }
+  } catch (err) {
+    alert("خطأ أثناء معالجة الطلب: " + err.message);
+    el.querySelectorAll("button").forEach((b) => (b.disabled = false));
   }
 }

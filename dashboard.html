@@ -65,8 +65,60 @@
       </div>
 
       <p class="mining-note">
-        معدل الزيادة التجريبي: 0.10 نقطة كل ثانية
+        معدل الزيادة التجريبي: <span id="rateNote">0.10</span> نقطة كل ثانية
       </p>
+    </section>
+
+    <section class="level-box">
+      <h3>مستوى التعدين</h3>
+      <div class="level-row">
+        <div>
+          <span>المستوى الحالي</span>
+          <strong id="currentLevelLabel">1</strong>
+        </div>
+        <div>
+          <span>المعدل الحالي</span>
+          <strong id="currentRateLabel">0.10 / ثانية</strong>
+        </div>
+      </div>
+      <div id="nextLevelBox" class="level-row next-level">
+        <div>
+          <span>المستوى التالي</span>
+          <strong id="nextLevelLabel">---</strong>
+        </div>
+        <button class="primary-button" id="upgradeButton">ترقية المستوى</button>
+      </div>
+      <p id="levelMsg" class="mining-note"></p>
+    </section>
+
+    <section class="referral-box">
+      <h3>برنامج الإحالة</h3>
+      <p>شارك رابطك واحصل على 50 نقطة عن كل صديق ينضم من خلاله (يحصل هو على 20 نقطة ترحيبية).</p>
+      <div class="referral-link-row">
+        <input type="text" id="referralLinkInput" readonly>
+        <button class="secondary-button" id="copyReferralBtn">نسخ الرابط</button>
+      </div>
+      <div class="account-info referral-stats">
+        <div>
+          <span>عدد الإحالات</span>
+          <strong id="referralCountEl">0</strong>
+        </div>
+        <div>
+          <span>أرباح الإحالة</span>
+          <strong id="referralEarningsEl">0.00</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="withdraw-box">
+      <h3>طلب سحب</h3>
+      <p>الحد الأدنى للسحب <span id="minWithdrawNote">100</span> نقطة. سيتم خصم المبلغ فور تقديم الطلب لحين مراجعته من الإدارة.</p>
+      <input type="number" id="withdrawAmount" placeholder="المبلغ المطلوب سحبه" min="0" step="0.01">
+      <input type="text" id="withdrawWallet" placeholder="عنوان محفظة TRX">
+      <button class="primary-button" id="withdrawButton">إرسال طلب السحب</button>
+      <p id="withdrawMsg" class="mining-note"></p>
+
+      <div id="withdrawHistory" class="withdraw-history"></div>
     </section>
 
     <section class="support-box">
