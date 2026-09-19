@@ -69,26 +69,39 @@
       </p>
     </section>
 
-    <section class="level-box">
-      <h3>مستوى التعدين</h3>
-      <div class="level-row">
-        <div>
-          <span>المستوى الحالي</span>
-          <strong id="currentLevelLabel">1</strong>
+    <section class="trx-box">
+      <h3>رصيد TRX</h3>
+      <p>يشحن رصيد TRX من قبل الإدارة فقط. استخدمه لشراء عضوية تعدين.</p>
+      <div class="trx-balance-row">
+        <span>رصيدك الحالي</span>
+        <strong id="trxBalanceEl">0.000000 TRX</strong>
+      </div>
+
+      <div class="membership-status" id="membershipStatusBox">
+        <div class="level-row">
+          <div>
+            <span>العضوية الحالية</span>
+            <strong id="currentPlanLabel">لا توجد عضوية نشطة</strong>
+          </div>
+          <div>
+            <span>معدل التعدين</span>
+            <strong id="currentRateLabel">0.00 / ثانية</strong>
+          </div>
         </div>
-        <div>
-          <span>المعدل الحالي</span>
-          <strong id="currentRateLabel">0.10 / ثانية</strong>
+        <div class="level-row">
+          <div>
+            <span>تنتهي في</span>
+            <strong id="expiryLabel">---</strong>
+          </div>
+          <div>
+            <span>الحد لهذه الدورة</span>
+            <strong id="cycleCapLabel">0 / 0</strong>
+          </div>
         </div>
       </div>
-      <div id="nextLevelBox" class="level-row next-level">
-        <div>
-          <span>المستوى التالي</span>
-          <strong id="nextLevelLabel">---</strong>
-        </div>
-        <button class="primary-button" id="upgradeButton">ترقية المستوى</button>
-      </div>
-      <p id="levelMsg" class="mining-note"></p>
+
+      <div class="plans-grid" id="plansGrid"></div>
+      <p id="planMsg" class="mining-note"></p>
     </section>
 
     <section class="referral-box">

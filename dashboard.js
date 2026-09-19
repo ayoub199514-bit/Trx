@@ -1,6 +1,6 @@
 // dashboard.js
-// منطق لوحة تحكم المستخدم: عرض البيانات، التعدين التجريبي، المستويات،
-// نظام الإحالة، طلبات السحب، وتسجيل الخروج.
+// منطق لوحة تحكم المستخدم: عرض البيانات، رصيد TRX، شراء العضويات،
+// التعدين التجريبي (بحد أقصى لكل دورة)، نظام الإحالة، طلبات السحب، وتسجيل الخروج.
 
 import { auth, db } from "./firebase-config.js";
 
@@ -20,7 +20,8 @@ import {
   query,
   where,
   getDocs,
-  serverTimestamp
+  serverTimestamp,
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const userNameEl = document.getElementById("userName");
@@ -34,12 +35,13 @@ const startButton = document.getElementById("startButton");
 const stopButton = document.getElementById("stopButton");
 const logoutButton = document.getElementById("logoutButton");
 
-const currentLevelLabel = document.getElementById("currentLevelLabel");
+const trxBalanceEl = document.getElementById("trxBalanceEl");
+const currentPlanLabel = document.getElementById("currentPlanLabel");
 const currentRateLabel = document.getElementById("currentRateLabel");
-const nextLevelBox = document.getElementById("nextLevelBox");
-const nextLevelLabel = document.getElementById("nextLevelLabel");
-const upgradeButton = document.getElementById("upgradeButton");
-const levelMsg = document.getElementById("levelMsg");
+const expiryLabel = document.getElementById("expiryLabel");
+const cycleCapLabel = document.getElementById("cycleCapLabel");
+const plansGrid = document.getElementById("plansGrid");
+const planMsg = document.getElementById("planMsg");
 
 const referralLinkInput = document.getElementById("referralLinkInput");
 const copyReferralBtn = document.getElementById("copyReferralBtn");
@@ -53,14 +55,14 @@ const withdrawMsg = document.getElementById("withdrawMsg");
 const withdrawHistory = document.getElementById("withdrawHistory");
 const minWithdrawNote = document.getElementById("minWithdrawNote");
 
-// ---------- إعدادات مستويات التعدين ----------
-// كل مستوى: level، rate (نقطة/ثانية)، cost (تكلفة الترقية إليه من المستوى السابق)
-const LEVELS = [
-  { level: 1, rate: 0.10, cost: 0 },
-  { level: 2, rate: 0.25, cost: 500 },
-  { level: 3, rate: 0.50, cost: 2000 },
-  { level: 4, rate: 1.00, cost: 5000 },
-  { level: 5, rate: 2.00, cost: 15000 }
+// ---------- إعدادات خطط العضوية ----------
+// ملاحظة: الأسعار (priceTRX) والمدة (durationDays) كما طلبتها بالضبط.
+// معدل التعدين (rate) والحد الأقصى لكل دورة (cap) قيم مبدئية يسهل تعديلها من هنا.
+const PLANS = [
+  { level: 1, label: "المستوى الأول", priceTRX: 0.000001, durationDays: 30, rate: 0.10, cap: 1000 },
+  { level: 2, label: "المستوى الثاني", priceTRX: 0.000002, durationDays: 60, rate: 0.20, cap: 2500 },
+  { level: 3, label: "المستوى الثالث", priceTRX: 0.000003, durationDays: 90, rate: 0.35, cap: 5000 },
+  { level: 4, label: "المستوى الخاص", priceTRX: 1, durationDays: 90, rate: 1.00, cap: 50000 }
 ];
 
 const MIN_WITHDRAW = 100;
@@ -68,18 +70,29 @@ minWithdrawNote.textContent = MIN_WITHDRAW;
 
 let currentUid = null;
 let currentBalance = 0;
-let currentLevel = 1;
+let currentTrxBalance = 0;
+let currentMiningLevel = 0; // 0 = لا توجد عضوية نشطة
+let currentCycleCap = 0;
+let currentEarnedThisCycle = 0;
+let membershipExpiresAt = null; // Date أو null
 let sessionPoints = 0;
 let intervalId = null;
 
-function rateForLevel(level) {
-  const found = LEVELS.find((l) => l.level === level);
-  return found ? found.rate : LEVELS[0].rate;
+function planForLevel(level) {
+  return PLANS.find((p) => p.level === level) || null;
+}
+
+function membershipIsActive() {
+  if (!currentMiningLevel) return false;
+  if (!membershipExpiresAt) return false;
+  if (Date.now() > membershipExpiresAt.getTime()) return false;
+  if (currentEarnedThisCycle >= currentCycleCap) return false;
+  return true;
 }
 
 // ---------- تسجيل الخروج ----------
 logoutButton.addEventListener("click", () => {
-  stopMining(false); // إيقاف بدون حفظ (سيُحفظ يدويًا إن أراد المستخدم قبل الخروج)
+  stopMining(false);
   signOut(auth);
 });
 
@@ -107,15 +120,20 @@ async function loadUserData() {
 
     const data = snap.data();
     currentBalance = data.balance ?? 0;
-    currentLevel = data.miningLevel ?? 1;
+    currentTrxBalance = data.trxBalance ?? 0;
+    currentMiningLevel = data.miningLevel ?? 0;
+    currentCycleCap = data.cycleCap ?? 0;
+    currentEarnedThisCycle = data.earnedThisCycle ?? 0;
+    membershipExpiresAt = data.membershipExpiresAt?.toDate ? data.membershipExpiresAt.toDate() : null;
 
     userNameEl.textContent = data.email ? data.email.split("@")[0] : "مستخدم";
     userEmailEl.textContent = data.email ?? "---";
     serialIdEl.textContent = data.serialId ?? "---";
     balanceEl.textContent = currentBalance.toFixed(2);
+    trxBalanceEl.textContent = `${currentTrxBalance.toFixed(6)} TRX`;
 
-    renderLevelBox();
-    renderRateNote();
+    renderMembershipBox();
+    renderPlans();
 
     // رابط الإحالة
     if (data.serialId) {
@@ -128,74 +146,103 @@ async function loadUserData() {
   }
 }
 
-function renderRateNote() {
-  const rate = rateForLevel(currentLevel).toFixed(2);
-  rateNoteEl.textContent = rate;
-  currentRateLabel.textContent = `${rate} / ثانية`;
-}
+function renderMembershipBox() {
+  const plan = planForLevel(currentMiningLevel);
+  const active = membershipIsActive();
 
-function renderLevelBox() {
-  currentLevelLabel.textContent = currentLevel;
-
-  const next = LEVELS.find((l) => l.level === currentLevel + 1);
-  if (!next) {
-    nextLevelLabel.textContent = "أعلى مستوى تم الوصول إليه";
-    upgradeButton.style.display = "none";
+  if (!plan) {
+    currentPlanLabel.textContent = "لا توجد عضوية نشطة";
+    currentRateLabel.textContent = "0.00 / ثانية";
+    expiryLabel.textContent = "---";
+    cycleCapLabel.textContent = "0 / 0";
+    rateNoteEl.textContent = "0.00";
     return;
   }
 
-  nextLevelLabel.textContent = `المستوى ${next.level} (${next.rate.toFixed(2)} / ثانية) — التكلفة: ${next.cost} نقطة`;
-  upgradeButton.style.display = "inline-block";
-  upgradeButton.disabled = currentBalance < next.cost;
+  currentPlanLabel.textContent = active ? plan.label : `${plan.label} (منتهية)`;
+  currentRateLabel.textContent = `${plan.rate.toFixed(2)} / ثانية`;
+  expiryLabel.textContent = membershipExpiresAt
+    ? membershipExpiresAt.toLocaleDateString("ar-EG")
+    : "---";
+  cycleCapLabel.textContent = `${currentEarnedThisCycle.toFixed(2)} / ${currentCycleCap}`;
+  rateNoteEl.textContent = active ? plan.rate.toFixed(2) : "0.00";
 }
 
-// ---------- ترقية مستوى التعدين ----------
-upgradeButton.addEventListener("click", async () => {
-  levelMsg.textContent = "";
-  const next = LEVELS.find((l) => l.level === currentLevel + 1);
-  if (!next) return;
+function renderPlans() {
+  plansGrid.innerHTML = PLANS.map((plan) => {
+    const isCurrent = plan.level === currentMiningLevel && membershipIsActive();
+    const canAfford = currentTrxBalance >= plan.priceTRX;
+    return `
+      <div class="plan-card ${isCurrent ? "active-plan" : ""}">
+        <div class="plan-name">${plan.label}</div>
+        <div class="plan-price">${plan.priceTRX} TRX</div>
+        <div class="plan-meta">
+          المدة: ${plan.durationDays} يوم<br>
+          المعدل: ${plan.rate.toFixed(2)}/ثانية<br>
+          الحد: ${plan.cap} نقطة
+        </div>
+        <button data-level="${plan.level}" ${!canAfford ? "disabled" : ""}>
+          ${isCurrent ? "تجديد" : "شراء"}
+        </button>
+      </div>
+    `;
+  }).join("");
 
-  if (currentBalance < next.cost) {
-    levelMsg.textContent = "رصيدك غير كافٍ لهذه الترقية.";
+  plansGrid.querySelectorAll("button").forEach((btn) => {
+    btn.addEventListener("click", () => buyPlan(parseInt(btn.dataset.level, 10)));
+  });
+}
+
+// ---------- شراء / تجديد عضوية ----------
+async function buyPlan(level) {
+  planMsg.textContent = "";
+  const plan = planForLevel(level);
+  if (!plan) return;
+
+  if (currentTrxBalance < plan.priceTRX) {
+    planMsg.textContent = "رصيد TRX غير كافٍ لهذه الخطة.";
     return;
   }
 
-  upgradeButton.disabled = true;
+  // إيقاف أي تعدين جاري قبل تبديل الخطة (دون حفظ النقاط المعلّقة يدويًا هنا؛ سنحفظها أولاً)
+  await stopMining(true);
 
   try {
     const userRef = doc(db, "users", currentUid);
+    const expiresAt = new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000);
 
     await runTransaction(db, async (transaction) => {
       const snap = await transaction.get(userRef);
       const data = snap.data();
-      const balanceNow = data.balance ?? 0;
-      const levelNow = data.miningLevel ?? 1;
+      const trxNow = data.trxBalance ?? 0;
 
-      if (levelNow !== currentLevel) {
-        throw new Error("تم تحديث المستوى من مكان آخر، أعد المحاولة.");
-      }
-      if (balanceNow < next.cost) {
-        throw new Error("رصيدك غير كافٍ لهذه الترقية.");
+      if (trxNow < plan.priceTRX) {
+        throw new Error("رصيد TRX غير كافٍ لهذه الخطة.");
       }
 
       transaction.update(userRef, {
-        balance: balanceNow - next.cost,
-        miningLevel: next.level
+        trxBalance: trxNow - plan.priceTRX,
+        miningLevel: plan.level,
+        cycleCap: plan.cap,
+        earnedThisCycle: 0,
+        membershipExpiresAt: Timestamp.fromDate(expiresAt)
       });
     });
 
-    currentBalance -= next.cost;
-    currentLevel = next.level;
-    balanceEl.textContent = currentBalance.toFixed(2);
-    renderLevelBox();
-    renderRateNote();
-    levelMsg.textContent = `تمت الترقية إلى المستوى ${next.level}.`;
+    currentTrxBalance -= plan.priceTRX;
+    currentMiningLevel = plan.level;
+    currentCycleCap = plan.cap;
+    currentEarnedThisCycle = 0;
+    membershipExpiresAt = expiresAt;
+
+    trxBalanceEl.textContent = `${currentTrxBalance.toFixed(6)} TRX`;
+    renderMembershipBox();
+    renderPlans();
+    planMsg.textContent = `تم تفعيل ${plan.label} بنجاح.`;
   } catch (err) {
-    levelMsg.textContent = "خطأ: " + err.message;
-  } finally {
-    renderLevelBox();
+    planMsg.textContent = "خطأ: " + err.message;
   }
-});
+}
 
 // ---------- نسخ رابط الإحالة ----------
 copyReferralBtn.addEventListener("click", async () => {
@@ -213,10 +260,23 @@ copyReferralBtn.addEventListener("click", async () => {
 startButton.addEventListener("click", () => {
   if (intervalId) return; // يعمل مسبقًا
 
+  if (!membershipIsActive()) {
+    miningStatusEl.textContent = "متوقف";
+    planMsg.textContent = "لا توجد عضوية نشطة أو وصلت للحد الأقصى — اشترِ خطة لبدء التعدين.";
+    return;
+  }
+
+  const plan = planForLevel(currentMiningLevel);
   miningStatusEl.textContent = "يعمل";
 
   intervalId = setInterval(() => {
-    sessionPoints += rateForLevel(currentLevel);
+    if (currentEarnedThisCycle + sessionPoints + plan.rate > currentCycleCap) {
+      // وصلنا للحد الأقصى لهذه الدورة: نحفظ ما تبقى ثم نوقف
+      stopMining(true);
+      planMsg.textContent = "وصلت للحد الأقصى لهذه الدورة. اشترِ عضوية جديدة لمتابعة التعدين.";
+      return;
+    }
+    sessionPoints += plan.rate;
     miningCounterEl.textContent = sessionPoints.toFixed(2);
   }, 1000);
 });
@@ -234,12 +294,17 @@ async function stopMining(save) {
   if (save && sessionPoints > 0 && currentUid) {
     try {
       const userRef = doc(db, "users", currentUid);
+      const pointsToSave = sessionPoints;
+
       await updateDoc(userRef, {
-        balance: increment(sessionPoints)
+        balance: increment(pointsToSave),
+        earnedThisCycle: increment(pointsToSave)
       });
-      currentBalance += sessionPoints;
+
+      currentBalance += pointsToSave;
+      currentEarnedThisCycle += pointsToSave;
       balanceEl.textContent = currentBalance.toFixed(2);
-      renderLevelBox();
+      renderMembershipBox();
     } catch (err) {
       console.error("خطأ في حفظ النقاط:", err);
     }
@@ -298,7 +363,6 @@ withdrawButton.addEventListener("click", async () => {
 
     currentBalance -= amount;
     balanceEl.textContent = currentBalance.toFixed(2);
-    renderLevelBox();
 
     withdrawMsg.textContent = "تم إرسال طلب السحب بنجاح، بانتظار مراجعة الإدارة.";
     withdrawAmountInput.value = "";

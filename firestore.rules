@@ -1,0 +1,108 @@
+rules_version = '2';
+
+// ============================================================================
+// قواعد أمان Firestore لمشروع MINEX
+// انسخ هذا الملف كاملاً إلى: Firebase Console > Firestore Database > Rules > Publish
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.uid == "3zoMCTW55hZkdgju68Yk7bqEUi33";
+    }
+
+    function closeTo(a, b) {
+      return a - b < 0.0000005 && b - a < 0.0000005;
+    }
+
+    // خطط العضوية: [priceTRX, level, cap] — يجب أن تطابق مصفوفة PLANS في dashboard.js تمامًا
+    function validPlanPurchase() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return after.earnedThisCycle == 0 && (
+        (closeTo(before.trxBalance - after.trxBalance, 0.000001) && after.miningLevel == 1 && after.cycleCap == 1000) ||
+        (closeTo(before.trxBalance - after.trxBalance, 0.000002) && after.miningLevel == 2 && after.cycleCap == 2500) ||
+        (closeTo(before.trxBalance - after.trxBalance, 0.000003) && after.miningLevel == 3 && after.cycleCap == 5000) ||
+        (closeTo(before.trxBalance - after.trxBalance, 1)        && after.miningLevel == 4 && after.cycleCap == 50000)
+      );
+    }
+
+    // ---------- مستندات حسابات المستخدمين ----------
+    match /users/{userId} {
+
+      // القراءة: صاحب الحساب أو الأدمن يقدر يقرأ مستنده مباشرة (get)
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+
+      // البحث (list): مطلوب لنظام الإحالة (بحث عن صاحب رمز إحالة) وللوحة الإدارة (بحث برقم الحساب)
+      allow list: if isSignedIn();
+
+      // الإنشاء: فقط عند التسجيل، والمستخدم يقدر ينشئ مستنده هو فقط
+      allow create: if isSignedIn() && request.auth.uid == userId;
+
+      // التحديث:
+      allow update: if isSignedIn() && (
+        // 1) الأدمن: صلاحية كاملة على أي حساب
+        isAdmin()
+        ||
+        // 2) صاحب الحساب — حفظ نقاط التعدين (تزيد فقط، ولا تتجاوز الحد الأقصى لدورته، وقبل انتهاء العضوية)
+        (
+          request.auth.uid == userId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance', 'earnedThisCycle']) &&
+          request.resource.data.balance >= resource.data.balance &&
+          request.resource.data.earnedThisCycle >= resource.data.earnedThisCycle &&
+          (request.resource.data.balance - resource.data.balance) == (request.resource.data.earnedThisCycle - resource.data.earnedThisCycle) &&
+          request.resource.data.earnedThisCycle <= resource.data.cycleCap &&
+          (resource.data.membershipExpiresAt == null || request.time <= resource.data.membershipExpiresAt)
+        )
+        ||
+        // 3) صاحب الحساب — طلب سحب (خصم من رصيد النقاط فقط)
+        (
+          request.auth.uid == userId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance']) &&
+          request.resource.data.balance < resource.data.balance
+        )
+        ||
+        // 4) صاحب الحساب — شراء/تجديد عضوية بخطط ثابتة ومحددة السعر مسبقًا
+        (
+          request.auth.uid == userId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['trxBalance', 'miningLevel', 'cycleCap', 'earnedThisCycle', 'membershipExpiresAt']) &&
+          validPlanPurchase()
+        )
+        ||
+        // 5) مكافأة إحالة تُمنح لحساب آخر (صاحب رابط الإحالة) بمبالغ ثابتة فقط
+        (
+          request.auth.uid != userId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance', 'referralCount', 'referralEarnings']) &&
+          request.resource.data.balance - resource.data.balance == 50 &&
+          request.resource.data.referralCount - resource.data.referralCount == 1 &&
+          request.resource.data.referralEarnings - resource.data.referralEarnings == 50
+        )
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ---------- عداد أرقام الحسابات التسلسلية ----------
+    match /counters/{counterId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && request.resource.data.count == resource.data.count + 1;
+    }
+
+    // ---------- طلبات السحب ----------
+    match /withdrawals/{withdrawId} {
+      allow create: if isSignedIn() &&
+                       request.resource.data.uid == request.auth.uid &&
+                       request.resource.data.status == "pending";
+      allow get: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow list: if isSignedIn(); // مقيّد فعليًا بالاستعلامات (where uid==.. أو status==pending) من التطبيق
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+  }
+}

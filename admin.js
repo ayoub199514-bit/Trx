@@ -1,5 +1,6 @@
 // admin.js
-// لوحة تحكم الإدارة: تسجيل دخول، البحث عن حساب برقم الحساب (serialId)، وتعديل الرصيد يدويًا.
+// لوحة تحكم الإدارة: تسجيل دخول، البحث عن حساب برقم الحساب (serialId رقم فقط)،
+// تعديل رصيد النقاط، شحن/خصم رصيد TRX، ومراجعة طلبات السحب.
 
 import {
   signInWithEmailAndPassword,
@@ -30,6 +31,7 @@ const loginMsg = document.getElementById("loginMsg");
 
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
+const searchSerialInput = document.getElementById("searchSerial");
 const searchBtn = document.getElementById("searchBtn");
 const addBtn = document.getElementById("addBtn");
 const subBtn = document.getElementById("subBtn");
@@ -38,13 +40,23 @@ const resultBox = document.getElementById("resultBox");
 const actionsBox = document.getElementById("actionsBox");
 const msgBox = document.getElementById("msgBox");
 
+const trxActionsBox = document.getElementById("trxActionsBox");
+const trxAmountInput = document.getElementById("trxAmountInput");
+const trxAddBtn = document.getElementById("trxAddBtn");
+const trxSubBtn = document.getElementById("trxSubBtn");
+const trxMsgBox = document.getElementById("trxMsgBox");
+
 const refreshWithdrawBtn = document.getElementById("refreshWithdrawBtn");
 const withdrawRequestsBox = document.getElementById("withdrawRequestsBox");
 
 let currentUserDocId = null; // معرف مستند المستخدم الحالي في Firestore بعد البحث
 
+// رقم الحساب أرقام فقط — لا يُسمح بأي حرف
+searchSerialInput.addEventListener("input", () => {
+  searchSerialInput.value = searchSerialInput.value.replace(/[^0-9]/g, "");
+});
+
 // تسجيل خروج تلقائي عند فتح الصفحة، حتى يُطلب البريد وكلمة المرور في كل مرة
-// (بدل أن يبقى Firebase مسجّلاً الدخول تلقائيًا من الجلسة السابقة)
 signOut(auth).catch(() => {});
 
 // ---------- تسجيل الدخول ----------
@@ -85,11 +97,12 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// ---------- البحث عن حساب برقم الحساب ----------
+// ---------- البحث عن حساب برقم الحساب (رقم فقط) ----------
 searchBtn.addEventListener("click", async () => {
-  const serial = document.getElementById("searchSerial").value.trim();
+  const serial = searchSerialInput.value.trim();
   resultBox.textContent = "";
   actionsBox.style.display = "none";
+  trxActionsBox.style.display = "none";
   currentUserDocId = null;
 
   if (!serial) {
@@ -111,20 +124,25 @@ searchBtn.addEventListener("click", async () => {
     const data = userDoc.data();
     currentUserDocId = userDoc.id;
 
+    const expiresAt = data.membershipExpiresAt?.toDate ? data.membershipExpiresAt.toDate() : null;
+
     resultBox.innerHTML = `
       البريد الإلكتروني: ${data.email ?? "---"}<br>
-      الرصيد الحالي: ${(data.balance ?? 0).toFixed(2)}
+      رصيد النقاط: ${(data.balance ?? 0).toFixed(2)}<br>
+      رصيد TRX: ${(data.trxBalance ?? 0).toFixed(6)}<br>
+      المستوى الحالي: ${data.miningLevel ?? "لا يوجد"}<br>
+      الحد لهذه الدورة: ${(data.earnedThisCycle ?? 0).toFixed(2)} / ${data.cycleCap ?? 0}<br>
+      تنتهي العضوية: ${expiresAt ? expiresAt.toLocaleDateString("ar-EG") : "---"}
     `;
     actionsBox.style.display = "block";
+    trxActionsBox.style.display = "block";
   } catch (err) {
     resultBox.textContent = "خطأ أثناء البحث: " + err.message;
   }
 });
 
-// ---------- شحن الرصيد (زيادة) ----------
+// ---------- شحن/خفض رصيد النقاط ----------
 addBtn.addEventListener("click", () => adjustBalance(1));
-
-// ---------- سحب من الرصيد (خفض) ----------
 subBtn.addEventListener("click", () => adjustBalance(-1));
 
 async function adjustBalance(sign) {
@@ -151,11 +169,45 @@ async function adjustBalance(sign) {
       ? `تم شحن ${amount.toFixed(2)} بنجاح.`
       : `تم خفض ${amount.toFixed(2)} بنجاح.`;
 
-    // إعادة تحديث الرصيد المعروض
-    searchBtn.click();
     document.getElementById("amountInput").value = "";
+    searchBtn.click();
   } catch (err) {
     msgBox.textContent = "خطأ أثناء التحديث: " + err.message;
+  }
+}
+
+// ---------- شحن/خصم رصيد TRX ----------
+trxAddBtn.addEventListener("click", () => adjustTrxBalance(1));
+trxSubBtn.addEventListener("click", () => adjustTrxBalance(-1));
+
+async function adjustTrxBalance(sign) {
+  trxMsgBox.textContent = "";
+
+  if (!currentUserDocId) {
+    trxMsgBox.textContent = "ابحث عن حساب أولاً.";
+    return;
+  }
+
+  const amount = parseFloat(trxAmountInput.value);
+  if (isNaN(amount) || amount <= 0) {
+    trxMsgBox.textContent = "أدخل مبلغًا صحيحًا أكبر من صفر.";
+    return;
+  }
+
+  try {
+    const userRef = doc(db, "users", currentUserDocId);
+    await updateDoc(userRef, {
+      trxBalance: increment(sign * amount)
+    });
+
+    trxMsgBox.textContent = sign > 0
+      ? `تم شحن ${amount.toFixed(6)} TRX بنجاح.`
+      : `تم خصم ${amount.toFixed(6)} TRX بنجاح.`;
+
+    trxAmountInput.value = "";
+    searchBtn.click();
+  } catch (err) {
+    trxMsgBox.textContent = "خطأ أثناء التحديث: " + err.message;
   }
 }
 

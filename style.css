@@ -247,7 +247,7 @@ body {
   gap: 12px;
 }
 
-.level-box,
+.trx-box,
 .referral-box,
 .withdraw-box,
 .support-box {
@@ -258,7 +258,97 @@ body {
   background: #111b2e;
 }
 
-.level-box h3,
+.trx-box h3 {
+  margin: 0 0 8px;
+}
+
+.trx-box > p {
+  color: #aab5ca;
+  font-size: 13px;
+  margin: 0 0 15px;
+}
+
+.trx-balance-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #183a45, #17243e);
+  margin-bottom: 16px;
+}
+
+.trx-balance-row span {
+  color: #aab5ca;
+  font-size: 13px;
+}
+
+.trx-balance-row strong {
+  color: #45e0a2;
+  font-size: 18px;
+}
+
+.membership-status {
+  margin-bottom: 18px;
+}
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.plan-card {
+  border: 1px solid #263650;
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+}
+
+.plan-card.active-plan {
+  border-color: #45e0a2;
+}
+
+.plan-card .plan-name {
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.plan-card .plan-price {
+  color: #45e0a2;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.plan-card .plan-meta {
+  color: #aab5ca;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.plan-card button {
+  width: 100%;
+  padding: 9px;
+  border-radius: 8px;
+  border: none;
+  background: #2a6df4;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.plan-card button:disabled {
+  background: #263650;
+  color: #6b7893;
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .referral-box h3,
 .withdraw-box h3 {
   margin: 0 0 12px;
@@ -292,16 +382,6 @@ body {
 
 .level-row strong {
   font-size: 16px;
-}
-
-.next-level .primary-button {
-  padding: 8px 16px;
-}
-
-.next-level .primary-button:disabled {
-  background: #263650;
-  color: #6b7893;
-  cursor: not-allowed;
 }
 
 .referral-link-row {
