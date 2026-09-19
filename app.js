@@ -86,19 +86,20 @@ submitBtn.addEventListener("click", async () => {
   }
 });
 
-// توليد رقم حساب تسلسلي فريد بصيغة MX-000001 باستخدام عدّاد في Firestore
+// توليد رقم حساب تسلسلي فريد يبدأ من 19950000 ويزيد بمقدار 1 لكل حساب جديد
 async function generateSerialId() {
   const counterRef = doc(db, "counters", "users");
+  const START_ID = 19950000;
 
   const newCount = await runTransaction(db, async (transaction) => {
     const counterDoc = await transaction.get(counterRef);
-    const current = counterDoc.exists() ? counterDoc.data().count : 0;
+    const current = counterDoc.exists() ? counterDoc.data().count : (START_ID - 1);
     const next = current + 1;
     transaction.set(counterRef, { count: next });
     return next;
   });
 
-  return "MX-" + String(newCount).padStart(6, "0");
+  return String(newCount);
 }
 
 function translateError(code) {
