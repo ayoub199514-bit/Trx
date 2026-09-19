@@ -21,7 +21,7 @@ import { auth, db } from "./firebase-config.js";
 
 // !! مهم: ضع هنا الـ UID الخاص بحساب الأدمن (تجده في Firebase Console > Authentication)
 // هذا فقط تحقق إضافي في الواجهة؛ الحماية الحقيقية يجب أن تكون في Firestore rules.
-const ADMIN_UID = "ضع_هنا_UID_حساب_الأدمن";
+const ADMIN_UID = "3zoMCTW55hZkdgju68Yk7bqEUi33";
 
 const loginBox = document.getElementById("loginBox");
 const adminPanel = document.getElementById("adminPanel");
